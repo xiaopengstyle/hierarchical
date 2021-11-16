@@ -1,0 +1,6 @@
+/log/checkpoint*
+/log/experiment_state*
+/log/basic-variant-state*
+/log/*.pkl
+/log/progress.csv
+/log/result.json
