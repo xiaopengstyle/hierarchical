@@ -5,6 +5,7 @@ from lightsim2grid import LightSimBackend
 import numpy as np
 from .my_reward import get_reward
 from grid2op.Reward import CombinedReward
+from ray.rllib.agents.ppo import PPOTrainer
 
 
 def env_creator(env_config):

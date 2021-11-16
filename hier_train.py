@@ -36,12 +36,14 @@ if __name__ == '__main__':
             "policies": {
                 "high_level_agent": (None, env.base_env.observation_space,
                                       gym.spaces.Discrete(2), {
-                                          "gamma": 0.99
+                                        "gamma": 0.99,
+                                        "entropy":0.02,
                                       }),
                 "low_level_agent": (None,
                                      env.base_env.observation_space,
                                      gym.spaces.Discrete(env.base_env.action_space.n - 1), {
-                                         "gamma": 0.95
+                                        "gamma": 0.95,
+                                        "entropy": 0.01,
                                      }),
             },
             "policy_mapping_fn": policy_mapping_fn,
@@ -51,5 +53,5 @@ if __name__ == '__main__':
     env = None
     # config.update({"evaluation_interval":stop_num,"evaluation_num_episodes":30})
     # mode = "max", metric = "episode_reward_mean"
-    analysis = tune.run("PPO",stop={"timesteps_total":int(10e6)},config=config,local_dir="./log",
+    analysis = tune.run("PPO",stop={"timesteps_total":int(1e8)},config=config,local_dir="./log",
                         verbose=3,reuse_actors=True,keep_checkpoints_num=10,checkpoint_freq=10)
