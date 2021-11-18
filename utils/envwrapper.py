@@ -69,28 +69,21 @@ class MyActionWrapper(ActionWrapper):
         self.action_space = gym.spaces.Discrete(len(self.actions))
         # self.with_dispatch = with_dispatch
 
-    def step(self,action):
+    def step(self,o_action):
         ob = self.original_env.current_obs
         _reward = True
-        action = self.action(action)
-        if action != self.original_env.action_space({}):
-            sim_ob = ob + action
-            if sim_ob == ob:
-                _reward = False
-            else:
-                o,r,d,_ = ob.simulate(action)
-                o1,r1,d1,_ = ob.simulate(self.original_env.action_space({}))
-                if r1 >= r:
-                    _reward = False
-        else:
-            _reward = 0
+        action = self.action(o_action)
         observation, reward, done, info = self.env.step(action)
-        if not _reward and not done:
-            reward = -0.01
         if self.original_env.nb_time_step < ob.max_step and done:
-            reward = -100
+            reward = -10
         elif done:
-            reward = 1
+            reward = 10
+        else:
+            if o_action != 0:
+                if ob + action == ob + self.original_env.action_space({}):
+                    reward = -0.01
+            else:
+                reward = 0
         return observation,reward,done,info
 
 

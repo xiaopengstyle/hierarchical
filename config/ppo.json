@@ -1,7 +1,7 @@
 
 {
   "batch_mode": "truncate_episodes",
-  "clip_param": 0.05,
+  "clip_param": 0.1,
   "clip_rewards": false,
   "entropy_coeff": 0.0,
   "env": "my_env",
@@ -13,8 +13,8 @@
   "num_sgd_iter": 10,
   "num_workers": 10,
   "observation_filter": "NoFilter",
-  "sgd_minibatch_size": 256,
-  "train_batch_size": 20000,
+  "sgd_minibatch_size": 64,
+  "train_batch_size": 5000,
   "framework": "torch",
   "vf_clip_param": 10.0,
   "vf_loss_coeff": 1,
