@@ -5,11 +5,13 @@ from lightsim2grid import LightSimBackend
 import numpy as np
 from .my_reward import get_reward
 from grid2op.Reward import CombinedReward
-from ray.rllib.agents.ppo import PPOTrainer
-
+from grid2op.Parameters import Parameters
 
 def env_creator(env_config):
-    env = grid2op.make('l2rpn_2019', backend=LightSimBackend(), reward_class=CombinedReward, difficulty="competition")
+    p = Parameters()
+    p.NB_TIMESTEP_COOLDOWN_SUB = 10
+    p.NB_TIMESTEP_COOLDOWN_LINE = 10
+    env = grid2op.make('l2rpn_2019', backend=LightSimBackend(), reward_class=CombinedReward, param=p)
     env = get_reward(env)
     env.seed(np.random.randint(1,50))
     env = wrap_env(env,"/home/xpwang/data/proj_doc_3/hierarchical/config/all_action.json")
@@ -72,9 +74,11 @@ class MyEnv(MultiAgentEnv):
                     self.low_nothing = True
                     self.low_agent_num += 1
                     self.reward_cum = 0
+        info = {}
+        if done["__all__"]:
+            info = {"high_level_agent":{"episode_length":self.base_env.episode_length}}
 
-
-        return ob, r, done, {}
+        return ob, r, done, info
 
 
 if __name__ == '__main__':

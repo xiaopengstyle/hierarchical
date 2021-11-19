@@ -1,5 +1,5 @@
 from ray.rllib.agents.ppo import DEFAULT_CONFIG
-from utils.hier_wrapper import env_creator
+from utils.hier_wrapper_fix import env_creator
 from ray.tune.registry import register_env
 import ray
 import json

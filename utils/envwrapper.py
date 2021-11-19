@@ -35,6 +35,17 @@ class MyObservationWrapper(ObservationWrapper):
         #observation.day,observation.month,observation.
         self.original_env = env
         self.start_index = 3
+        self.chronic_difficulties = np.load("/home/xpwang/data/proj_doc_3/hierarchical/config/episode_count.npy")
+        self.chronic_prob = (self.chronic_difficulties[:, 1] - self.chronic_difficulties[:, 2]) / self.chronic_difficulties[:, 1]
+        self.chronic_prob = np.sqrt(self.chronic_prob)
+        self.chronic_prob = np.exp(self.chronic_prob)
+        the_sum = np.sum(self.chronic_prob)
+        self.chronic_prob /= the_sum
+        self.chosed_chronic_id = 0
+        self.env_count = 0
+        self.env_max_count = 2
+        self.min_length = 288
+        self.chronics = [i for i in range(len(self.chronic_prob))]
 
         self.observation_list = [
             "prod_p","prod_q","prod_v",
@@ -45,8 +56,26 @@ class MyObservationWrapper(ObservationWrapper):
         ]
         self.obs_dim = 3 * env.n_gen  + 3 * env.n_load + 9 * env.n_line
         self.observation_space = gym.spaces.Box(np.ones(self.obs_dim)*(-1e6),np.ones(self.obs_dim)*(1e6),dtype=np.float)
-
-
+    
+    def reset(self, **kwargs):
+        if self.env_count == 0:
+            self.chosed_chronic_id = np.random.choice(self.chronics, 1, p=self.chronic_prob)[0]
+        if self.env_count == self.env_max_count or self.chronic_difficulties[self.chosed_chronic_id][1] == self.chronic_difficulties[self.chosed_chronic_id][2]:
+            self.env_count = 0
+        else:
+            self.env_count += 1
+        self.env.set_id(self.chosed_chronic_id)
+        big_chro = self.chronic_difficulties[self.chosed_chronic_id][2]
+        self.start_index = np.random.choice([i for i in range(0, max(1,int(big_chro -20)))], 1)[0]
+        if self.start_index > self.chronic_difficulties[self.chosed_chronic_id][1] - self.min_length:
+            self.start_index = self.chronic_difficulties[self.chosed_chronic_id][1] - self.min_length
+        self.episode_length = self.chronic_difficulties[self.chosed_chronic_id][1] - self.start_index
+        print("episode setting:",self.chosed_chronic_id, self.start_index, self.episode_length)
+        print("episode info:",self.chronic_difficulties[self.chosed_chronic_id])
+        self.env.reset(**kwargs)
+        self.env.fast_forward_chronics(self.start_index)
+        observation = self.env.current_obs
+        return self.observation(observation)
 
     def observation(self, observation):
         self.obs = observation
