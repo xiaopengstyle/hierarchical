@@ -16,7 +16,7 @@ if __name__ == '__main__':
     env = wrap_env(env,"config/all_action.json")
     env = MyEnv(env)
     ob = env.reset()
-    episodes = 10
+    episodes = 300
     total_step = 0
     for i in range(episodes):
         done = {"__all__":False}

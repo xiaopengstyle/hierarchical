@@ -75,9 +75,6 @@ class MyEnv(MultiAgentEnv):
                     self.low_agent_num += 1
                     self.reward_cum = 0
         info = {}
-        if done["__all__"]:
-            info = {"high_level_agent":{"episode_length":self.base_env.episode_length}}
-
         return ob, r, done, info
 
 

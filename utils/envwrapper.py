@@ -37,14 +37,14 @@ class MyObservationWrapper(ObservationWrapper):
         self.start_index = 3
         self.chronic_difficulties = np.load("/home/xpwang/data/proj_doc_3/hierarchical/config/episode_count.npy")
         self.chronic_prob = (self.chronic_difficulties[:, 1] - self.chronic_difficulties[:, 2]) / self.chronic_difficulties[:, 1]
-        self.chronic_prob = np.sqrt(self.chronic_prob)
+        self.chronic_prob = self.chronic_prob * 100
         self.chronic_prob = np.exp(self.chronic_prob)
         the_sum = np.sum(self.chronic_prob)
         self.chronic_prob /= the_sum
         self.chosed_chronic_id = 0
         self.env_count = 0
-        self.env_max_count = 2
-        self.min_length = 288
+        self.env_max_count = 3
+        self.the_episode_length = 288 * 3
         self.chronics = [i for i in range(len(self.chronic_prob))]
 
         self.observation_list = [
@@ -58,24 +58,48 @@ class MyObservationWrapper(ObservationWrapper):
         self.observation_space = gym.spaces.Box(np.ones(self.obs_dim)*(-1e6),np.ones(self.obs_dim)*(1e6),dtype=np.float)
     
     def reset(self, **kwargs):
+        # choose a new chronic id
         if self.env_count == 0:
             self.chosed_chronic_id = np.random.choice(self.chronics, 1, p=self.chronic_prob)[0]
+        # if it's arrived at the max or the chronic is easy, then next reset choose a new chronic
         if self.env_count == self.env_max_count or self.chronic_difficulties[self.chosed_chronic_id][1] == self.chronic_difficulties[self.chosed_chronic_id][2]:
             self.env_count = 0
         else:
             self.env_count += 1
+        # set the chronic
         self.env.set_id(self.chosed_chronic_id)
-        big_chro = self.chronic_difficulties[self.chosed_chronic_id][2]
-        self.start_index = np.random.choice([i for i in range(0, max(1,int(big_chro -20)))], 1)[0]
-        if self.start_index > self.chronic_difficulties[self.chosed_chronic_id][1] - self.min_length:
-            self.start_index = self.chronic_difficulties[self.chosed_chronic_id][1] - self.min_length
-        self.episode_length = self.chronic_difficulties[self.chosed_chronic_id][1] - self.start_index
-        print("episode setting:",self.chosed_chronic_id, self.start_index, self.episode_length)
-        print("episode info:",self.chronic_difficulties[self.chosed_chronic_id])
+        # print(self.chosed_chronic_id)
+        # choise a start index
+        index = [i for i in range(0, int(self.chronic_difficulties[self.chosed_chronic_id][1] - self.the_episode_length))]
+        p = np.array([1 for _ in range(len(index))])
+        if self.chronic_difficulties[self.chosed_chronic_id][1] > self.chronic_difficulties[self.chosed_chronic_id][2]:
+            start = max(self.chronic_difficulties[self.chosed_chronic_id][2] - self.the_episode_length,0)
+            end = max(int(self.chronic_difficulties[self.chosed_chronic_id][2] - 10),1)
+            p[start:end] = 100
+        the_sum = np.sum(p)
+        p = p / the_sum
+        self.start_index = np.random.choice(index, 1, p = p)[0]
+        # print("episode setting:",self.chosed_chronic_id, self.start_index, self.episode_length)
+        # print("episode info:",self.chronic_difficulties[self.chosed_chronic_id])
         self.env.reset(**kwargs)
         self.env.fast_forward_chronics(self.start_index)
         observation = self.env.current_obs
+        self.step_count = 0
         return self.observation(observation)
+
+    def step(self, action):
+        observation, reward, done, info = self.env.step(action)
+        self.step_count += 1
+        if self.step_count == self.the_episode_length:
+            if done:
+                if env.nb_time_step < observation.max_step:
+                    reward = -10
+                else:
+                    reward = 10
+            else:
+                reward = 10
+            done = True
+        return self.observation(observation), reward, done, info
 
     def observation(self, observation):
         self.obs = observation
@@ -103,11 +127,7 @@ class MyActionWrapper(ActionWrapper):
         _reward = True
         action = self.action(o_action)
         observation, reward, done, info = self.env.step(action)
-        if self.original_env.nb_time_step < ob.max_step and done:
-            reward = -10
-        elif done:
-            reward = 10
-        else:
+        if not done:
             if o_action != 0:
                 if ob + action == ob + self.original_env.action_space({}):
                     reward = -0.01
